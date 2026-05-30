@@ -15,7 +15,7 @@ Most Discord bot developers rewrite complex voice-state logic for every single p
 
 ## Features
 
-- Full lifecycle automation – user join -> channel auto-generation -> user transfer -> auto-deletion
+- Full lifecycle automation – user join ? channel auto-generation ? user transfer ? auto-deletion
 - Local state persistence – saves channel-to-owner mappings to recover after bot crashes
 - Smart owner handover – automatically reassigns control to the next active user if the creator leaves
 - Spam prevention cooldowns – built-in protection against channel creation abuse
