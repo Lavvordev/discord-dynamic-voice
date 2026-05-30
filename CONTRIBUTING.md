@@ -26,51 +26,43 @@ cd discord-dynamic-voice
 npm install
 npm run build
 npm test
-Pull Request Process
-Fork the repository and create a branch from main.
+```
 
-Write tests for any new functionality.
+## Pull Request Process
 
-Ensure all tests pass and coverage does not decrease.
+1. Fork the repository and create a branch from `main`.
+2. Write tests for any new functionality.
+3. Ensure all tests pass and coverage does not decrease.
+4. Run `npm run lint` and `npm run format`.
+5. Update `README.md` if API changes.
+6. Update `CHANGELOG.md` with your changes.
+7. Open a pull request against the `main` branch.
 
-Run npm run lint and npm run format.
+## Commit Convention
 
-Update README.md if API changes.
+Use [Conventional Commits](https://www.conventionalcommits.org/):
 
-Update CHANGELOG.md with your changes.
+- `feat:` new feature
+- `fix:` bug fix
+- `docs:` documentation only
+- `test:` adding missing tests
+- `chore:` maintenance tasks
 
-Open a pull request against the main branch.
+Example: `feat: add support for custom parent category`
 
-Commit Convention
-Use Conventional Commits:
+## Testing Guidelines
 
-feat: new feature
+- Unit tests go in `test/unit/`
+- Integration tests go in `test/integration/` (requires a real Discord bot token – not run in CI)
+- All tests must pass before merging
 
-fix: bug fix
+## Release Process
 
-docs: documentation only
-
-test: adding missing tests
-
-chore: maintenance tasks
-
-Example: feat: add support for custom parent category
-
-Testing Guidelines
-Unit tests go in test/unit/
-
-Integration tests go in test/integration/ (requires a real Discord bot token – not run in CI)
-
-All tests must pass before merging
-
-Release Process
 Maintainers handle releases. Version bumps follow semver:
+- Patch: bug fixes (1.0.x)
+- Minor: new features (1.x.0)
+- Major: breaking changes (x.0.0)
 
-Patch: bug fixes (1.0.x)
+## Questions
 
-Minor: new features (1.x.0)
-
-Major: breaking changes (x.0.0)
-
-Questions
 Open a discussion on GitHub.
