@@ -15,7 +15,7 @@ Most Discord bot developers rewrite complex voice-state logic for every single p
 
 ## Features
 
-- Full lifecycle automation – user join ? channel auto-generation ? user transfer ? auto-deletion
+- Full lifecycle automation – user join -> channel auto-generation -> user transfer -> auto-deletion
 - Local state persistence – saves channel-to-owner mappings to recover after bot crashes
 - Smart owner handover – automatically reassigns control to the next active user if the creator leaves
 - Spam prevention cooldowns – built-in protection against channel creation abuse
@@ -27,12 +27,17 @@ Most Discord bot developers rewrite complex voice-state logic for every single p
 
 ```bash
 npm install discord-dynamic-voice
-Peer dependency: discord.js v14 or higher
+```
 
-bash
+**Peer dependency:** discord.js v14 or higher
+
+```bash
 npm install discord.js@^14.0.0
-Quick Start
-javascript
+```
+
+## Quick Start
+
+```javascript
 const { Client, GatewayIntentBits } = require('discord.js');
 const { DynamicVoiceManager } = require('discord-dynamic-voice');
 
@@ -70,10 +75,13 @@ client.on('ready', async () => {
 });
 
 client.login('YOUR_BOT_TOKEN');
-Slash Commands Integration
-Register slash commands (rename, limit, lock, unlock) using your command handler. Example for /rename:
+```
 
-javascript
+## Slash Commands Integration
+
+Register slash commands (rename, limit, lock, unlock) using your command handler. Example for `/rename`:
+
+```javascript
 const { handleRename } = require('discord-dynamic-voice');
 
 // Inside your interaction handler
@@ -84,36 +92,50 @@ if (commandName === 'rename') {
   }
   await handleRename(voiceManager, interaction, channel, interaction.member);
 }
-API Reference
-new DynamicVoiceManager(client, options)
-Option	Type	Default	Description
-creatorChannelId	string	required	ID of the lobby channel users join to spawn a VC
-defaultName	string	"{username}'s voice"	Name template (supports {username}, {displayname}, {id})
-defaultBitrate	number	64000	Bitrate in kbps
-defaultUserLimit	number	0	Max users (0 = unlimited)
-autoDeleteWhenEmpty	boolean	true	Delete channel when everyone leaves
-emptyDeleteDelayMs	number	0	Delay before deleting empty channel
-creationCooldownMs	number	5000	Cooldown per user (ms)
-requestQueueDelayMs	number	1000	Delay between Discord API requests
-persistenceFilePath	string	'./dynamic-voice-state.json'	Path to JSON state file
-Methods
-Method	Description
-init()	Loads persistence, cleans orphans, attaches listeners
-lockChannel(channel)	Prevents @everyone from connecting
-unlockChannel(channel)	Restores @everyone connection
-setUserLimit(channel, limit)	Sets max user capacity (0-99)
-renameChannel(channel, name)	Renames the channel
-getOwner(channelId)	Returns owner's user ID or null
-isManagedChannel(channelId)	Checks if channel is managed
-shutdown()	Flushes persistence, cleans up
-Events
-Event	Payload	Description
-channelCreated	(channel, creator)	Fired when a new dynamic channel is created
-channelEmpty	(channel)	Fired when a channel becomes empty (before deletion)
-ownerSwapped	(channel, newOwner)	Fired when ownership transfers to another member
-error	(error)	Fired on any internal error
-Contributing
-See CONTRIBUTING.md.
+```
 
-License
+## API Reference
+
+### `new DynamicVoiceManager(client, options)`
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `creatorChannelId` | string | required | ID of the lobby channel users join to spawn a VC |
+| `defaultName` | string | `"{username}'s voice"` | Name template (supports `{username}`, `{displayname}`, `{id}`) |
+| `defaultBitrate` | number | `64000` | Bitrate in kbps |
+| `defaultUserLimit` | number | `0` | Max users (0 = unlimited) |
+| `autoDeleteWhenEmpty` | boolean | `true` | Delete channel when everyone leaves |
+| `emptyDeleteDelayMs` | number | `0` | Delay before deleting empty channel |
+| `creationCooldownMs` | number | `5000` | Cooldown per user (ms) |
+| `requestQueueDelayMs` | number | `1000` | Delay between Discord API requests |
+| `persistenceFilePath` | string | `'./dynamic-voice-state.json'` | Path to JSON state file |
+
+### Methods
+
+| Method | Description |
+|--------|-------------|
+| `init()` | Loads persistence, cleans orphans, attaches listeners |
+| `lockChannel(channel)` | Prevents @everyone from connecting |
+| `unlockChannel(channel)` | Restores @everyone connection |
+| `setUserLimit(channel, limit)` | Sets max user capacity (0-99) |
+| `renameChannel(channel, name)` | Renames the channel |
+| `getOwner(channelId)` | Returns owner's user ID or null |
+| `isManagedChannel(channelId)` | Checks if channel is managed |
+| `shutdown()` | Flushes persistence, cleans up |
+
+### Events
+
+| Event | Payload | Description |
+|-------|---------|-------------|
+| `channelCreated` | `(channel, creator)` | Fired when a new dynamic channel is created |
+| `channelEmpty` | `(channel)` | Fired when a channel becomes empty (before deletion) |
+| `ownerSwapped` | `(channel, newOwner)` | Fired when ownership transfers to another member |
+| `error` | `(error)` | Fired on any internal error |
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md).
+
+## License
+
 MIT (c) lavvordev
