@@ -1,0 +1,27 @@
+# Source and test files (not needed in published package)
+src/
+test/
+coverage/
+.github/
+.vscode/
+.idea/
+
+# Config files
+tsconfig.json
+tsconfig.build.json
+jest.config.js
+.eslintrc.json
+.prettierrc
+CONTRIBUTING.md
+CHANGELOG.md
+SECURITY.md
+
+# Examples (optional – can keep if you want users to see examples)
+examples/
+
+# Local files
+*.log
+*.tmp
+.env
+.DS_Store
+dynamic-voice-state.json

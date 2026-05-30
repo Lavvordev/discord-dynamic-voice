@@ -1,0 +1,79 @@
+{
+  "name": "discord-dynamic-voice",
+  "version": "1.0.1",
+  "description": "Ultra-lightweight manager for Discord.js bots to create automated temporary/dynamic voice channels with local JSON persistence.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "lint": "eslint src --ext .ts",
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "discord-temp-voice",
+    "dynamic-vc",
+    "discord.js-v14",
+    "temporary-channels",
+    "voice-generator",
+    "discord-bot-utility",
+    "join-to-create",
+    "discord-voice",
+    "temp-vc",
+    "voice-master",
+    "auto-vc",
+    "discord-typescript",
+    "custom-voice-channels",
+    "voice-state",
+    "guild-voice",
+    "temporary-voice-channels",
+    "dynamic-voice-bot",
+    "lavvor",
+    "lavvordev",
+    "lavvorstudio",
+    "discordjs-extension"
+  ],
+  "author": "lavvordev",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lavvordev/discord-dynamic-voice.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Lavvordev/discord-dynamic-voice/issues"
+  },
+  "homepage": "https://github.com/Lavvordev/discord-dynamic-voice#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "discord.js": "^14.0.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.0",
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "discord.js": "^14.14.1",
+    "eslint": "^8.50.0",
+    "jest": "^29.7.0",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}
