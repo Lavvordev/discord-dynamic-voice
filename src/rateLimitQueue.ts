@@ -1,23 +1,15 @@
-/**
- * A simple promise queue to prevent hitting Discord's rate limits (429).
- * 
- * If 20 users join the lobby at the same second, Discord will start rejecting
- * channel creation requests. This queue spaces them out.
- */
+type AsyncFunction<T> = () => Promise<T>;
+
 export class RateLimitQueue {
-  private queue: Array<() => Promise<any>> = [];
+  private queue: Array<AsyncFunction<unknown>> = [];
   private processing = false;
   private delayMs: number;
 
-  constructor(delayMs: number = 1000) {
+  constructor(delayMs = 1000) {
     this.delayMs = delayMs;
   }
 
-  /**
-   * Add a task to the queue.
-   * Returns a promise that resolves when the task completes.
-   */
-  public async add<T>(task: () => Promise<T>): Promise<T> {
+  public async add<T>(task: AsyncFunction<T>): Promise<T> {
     return new Promise((resolve, reject) => {
       this.queue.push(async () => {
         try {
@@ -27,7 +19,7 @@ export class RateLimitQueue {
           reject(err);
         }
       });
-      this.process();
+      void this.process();
     });
   }
 
@@ -39,7 +31,6 @@ export class RateLimitQueue {
       const task = this.queue.shift();
       if (task) {
         await task();
-        // Wait between requests to respect rate limits
         if (this.queue.length > 0) {
           await this.sleep(this.delayMs);
         }
@@ -52,16 +43,10 @@ export class RateLimitQueue {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Get current queue length.
-   */
   public size(): number {
     return this.queue.length;
   }
 
-  /**
-   * Clear the queue (useful on bot shutdown).
-   */
   public clear(): void {
     this.queue = [];
   }

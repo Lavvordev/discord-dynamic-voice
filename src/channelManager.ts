@@ -1,7 +1,6 @@
 import { Guild, VoiceChannel, CategoryChannel, GuildMember, User, ChannelType } from 'discord.js';
 import { DynamicVoiceOptions, ChannelMetadata } from './types';
 import { renderChannelName, validateBitrate, validateUserLimit, sanitizeChannelName } from './utils';
-import { PermissionManager } from './permissionManager';
 import { RateLimitQueue } from './rateLimitQueue';
 
 /**
@@ -29,7 +28,7 @@ export class ChannelManager {
   public async createChannelForUser(
     guild: Guild,
     creator: User,
-    member: GuildMember,
+    _member: GuildMember,
     parentCategory?: CategoryChannel | null
   ): Promise<{ channel: VoiceChannel; metadata: ChannelMetadata }> {
     const channelName = renderChannelName(this.options.defaultName, creator);
@@ -37,7 +36,7 @@ export class ChannelManager {
     const bitrate = validateBitrate(this.options.defaultBitrate);
     const userLimit = validateUserLimit(this.options.defaultUserLimit);
 
-    const channel = await this.queue.add(async () => {
+    const createdChannel = await this.queue.add(async () => {
       const created = await guild.channels.create({
         name: sanitizedName,
         type: ChannelType.GuildVoice,
@@ -46,18 +45,18 @@ export class ChannelManager {
         parent: parentCategory ?? undefined,
         reason: `Dynamic voice channel created for ${creator.tag}`
       });
-      // Discord.js v14 returns a GuildChannel; we assert it's a VoiceChannel
-      return created as VoiceChannel;
+      // Discord.js v14 returns a VoiceChannel when type is GuildVoice – no assertion needed.
+      return created;
     });
 
     const metadata: ChannelMetadata = {
-      channel,
+      channel: createdChannel,
       creatorId: creator.id,
       createdAt: new Date(),
       lastActivityAt: new Date()
     };
 
-    return { channel, metadata };
+    return { channel: createdChannel, metadata };
   }
 
   /**
