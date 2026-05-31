@@ -1,6 +1,6 @@
 {
   "name": "discord-dynamic-voice",
-  "version": "1.0.7",
+  "version": "1.0.9",
   "description": "Ultra-lightweight manager for Discord.js bots to create automated temporary/dynamic voice channels with local JSON persistence.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,8 +16,11 @@
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint": "eslint src --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "prepublishOnly": "npm run build"
+    "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"examples/**/*.js\"",
+    "prepublishOnly": "npm run build",
+    "example:basic": "node examples/basic-usage.js",
+    "example:premium": "node examples/premium-example.js",
+    "example:storage": "node examples/storage-adapter.js"
   },
   "keywords": [
     "discord-temp-voice",
@@ -40,7 +43,9 @@
     "lavvor",
     "lavvordev",
     "lavvorstudio",
-    "discordjs-extension"
+    "discordjs-extension",
+    "voice-permissions",
+    "premium-voice"
   ],
   "author": "lavvordev",
   "license": "MIT",
@@ -63,7 +68,7 @@
     "@types/node": "^20.0.0",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
-    "discord.js": "^14.0.0",
+    "discord.js": "^14.14.1",
     "eslint": "^8.50.0",
     "jest": "^29.7.0",
     "prettier": "^3.0.0",
@@ -75,8 +80,5 @@
     "dist",
     "README.md",
     "LICENSE"
-  ],
-  "dependencies": {
-    "discord-dynamic-voice": "^1.0.2"
-  }
+  ]
 }
