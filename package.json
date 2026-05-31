@@ -1,6 +1,6 @@
 {
   "name": "discord-dynamic-voice",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Ultra-lightweight manager for Discord.js bots to create automated temporary/dynamic voice channels with local JSON persistence.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
