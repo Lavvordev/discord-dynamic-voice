@@ -1,8 +1,5 @@
 import { VoiceChannel, GuildMember, PermissionFlagsBits } from 'discord.js';
 
-/**
- * Manages permission overrides for dynamic voice channels.
- */
 export class PermissionManager {
   public static async cloneOverrides(
     sourceChannel: VoiceChannel,
@@ -17,7 +14,6 @@ export class PermissionManager {
     }));
 
     await targetChannel.edit({ permissionOverwrites: overrides });
-
     await targetChannel.permissionOverwrites.edit(creatorMember, {
       ManageChannels: true,
       Connect: true,
@@ -37,6 +33,39 @@ export class PermissionManager {
     await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
       Connect: null
     });
+  }
+
+  public static async hideChannel(channel: VoiceChannel): Promise<void> {
+    await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
+      ViewChannel: false
+    });
+  }
+
+  public static async unhideChannel(channel: VoiceChannel): Promise<void> {
+    await channel.permissionOverwrites.edit(channel.guild.roles.everyone, {
+      ViewChannel: null
+    });
+  }
+
+  public static async permitUser(channel: VoiceChannel, userId: string): Promise<void> {
+    const member = await channel.guild.members.fetch(userId).catch(() => null);
+    if (!member) throw new Error('User not found');
+    await channel.permissionOverwrites.edit(member, {
+      Connect: true,
+      ViewChannel: true
+    });
+  }
+
+  public static async blockUser(channel: VoiceChannel, userId: string): Promise<void> {
+    const member = await channel.guild.members.fetch(userId).catch(() => null);
+    if (!member) throw new Error('User not found');
+    await channel.permissionOverwrites.edit(member, {
+      Connect: false,
+      ViewChannel: false
+    });
+    if (member.voice.channelId === channel.id) {
+      await member.voice.disconnect('Blocked from channel');
+    }
   }
 
   public static async setUserLimit(channel: VoiceChannel, limit: number): Promise<void> {

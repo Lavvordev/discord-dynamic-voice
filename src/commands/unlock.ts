@@ -1,28 +1,26 @@
 import { VoiceChannel, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import { DynamicVoiceManager } from '../manager';
 
-/**
- * Handle the /unlock command.
- * Restores @everyone's ability to connect.
- */
 export async function handleUnlock(
   manager: DynamicVoiceManager,
   interaction: ChatInputCommandInteraction,
   channel: VoiceChannel,
   member: GuildMember
 ): Promise<void> {
-  const ownerId = manager.getOwner(channel.id);
+  const ownerId = await manager.getOwner(channel.id);
   const isOwner = ownerId === member.id;
+  const cohosts = await manager.getCohosts(channel.id);
+  const isCohost = cohosts.includes(member.id);
   const hasAdmin = member.permissions.has('ManageChannels');
-  
-  if (!isOwner && !hasAdmin) {
+
+  if (!isOwner && !isCohost && !hasAdmin) {
     await interaction.reply({
-      content: 'You are not the owner of this voice channel.',
+      content: 'You are not the owner or co-host of this voice channel.',
       ephemeral: true
     });
     return;
   }
-  
+
   try {
     await manager.unlockChannel(channel);
     await interaction.reply({

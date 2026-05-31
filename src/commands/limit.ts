@@ -2,10 +2,6 @@ import { VoiceChannel, ChatInputCommandInteraction, GuildMember } from 'discord.
 import { DynamicVoiceManager } from '../manager';
 import { validateUserLimit } from '../utils';
 
-/**
- * Handle the /limit command.
- * Sets the maximum number of users who can join the dynamic channel.
- */
 export async function handleLimit(
   manager: DynamicVoiceManager,
   interaction: ChatInputCommandInteraction,
@@ -13,19 +9,20 @@ export async function handleLimit(
   member: GuildMember
 ): Promise<void> {
   const limitInput = interaction.options.getInteger('limit', true);
-  
-  const ownerId = manager.getOwner(channel.id);
+  const ownerId = await manager.getOwner(channel.id);
   const isOwner = ownerId === member.id;
+  const cohosts = await manager.getCohosts(channel.id);
+  const isCohost = cohosts.includes(member.id);
   const hasAdmin = member.permissions.has('ManageChannels');
-  
-  if (!isOwner && !hasAdmin) {
+
+  if (!isOwner && !isCohost && !hasAdmin) {
     await interaction.reply({
-      content: 'You are not the owner of this voice channel.',
+      content: 'You are not the owner or co-host of this voice channel.',
       ephemeral: true
     });
     return;
   }
-  
+
   const validLimit = validateUserLimit(limitInput);
   try {
     await manager.setUserLimit(channel, validLimit);

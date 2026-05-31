@@ -1,11 +1,10 @@
 import { DynamicVoiceManager } from '../../src/manager';
 
-// Proper mock for discord.js Client with constructor parameter
 jest.mock('discord.js', () => ({
   Client: class {
     on = jest.fn();
     guilds = { cache: new Map() };
-    constructor(_options?: any) {} // Accept options parameter
+    constructor(_options?: any) {}
   },
   GatewayIntentBits: {
     Guilds: 1,
@@ -23,7 +22,7 @@ describe('DynamicVoiceManager', () => {
 
   beforeEach(() => {
     const { Client } = require('discord.js');
-    client = new Client({ intents: [] }); // Now works with argument
+    client = new Client({ intents: [] });
     manager = new DynamicVoiceManager(client, { creatorChannelId: '123' });
   });
 
@@ -41,23 +40,26 @@ describe('DynamicVoiceManager', () => {
     const mockChannel = { id: '456' };
     const { PermissionManager } = require('../../src/permissionManager');
     PermissionManager.lockChannel = jest.fn().mockResolvedValue(undefined);
-    
     await manager.lockChannel(mockChannel as any);
     expect(PermissionManager.lockChannel).toHaveBeenCalledWith(mockChannel);
   });
 
-  test('getOwner returns creatorId from persistence', () => {
+  test('getOwner returns creatorId from persistence', async () => {
     const persistence = (manager as any).persistence;
-    persistence.set('chan1', { channelId: 'chan1', creatorId: 'userX', guildId: 'g', createdAt: 1, lastActivityAt: 1 });
-    expect(manager.getOwner('chan1')).toBe('userX');
-    expect(manager.getOwner('unknown')).toBeNull();
+    await persistence.setChannel('chan1', { channelId: 'chan1', creatorId: 'userX', guildId: 'g', createdAt: 1, lastActivityAt: 1, cohosts: [] });
+    const owner = await manager.getOwner('chan1');
+    expect(owner).toBe('userX');
+    const unknown = await manager.getOwner('unknown');
+    expect(unknown).toBeNull();
   });
 
-  test('isManagedChannel returns true for persisted channel', () => {
+  test('isManagedChannel returns true for persisted channel', async () => {
     const persistence = (manager as any).persistence;
-    persistence.set('chan2', { channelId: 'chan2', creatorId: 'userY', guildId: 'g', createdAt: 1, lastActivityAt: 1 });
-    expect(manager.isManagedChannel('chan2')).toBe(true);
-    expect(manager.isManagedChannel('fake')).toBe(false);
+    await persistence.setChannel('chan2', { channelId: 'chan2', creatorId: 'userY', guildId: 'g', createdAt: 1, lastActivityAt: 1, cohosts: [] });
+    const managed = await manager.isManagedChannel('chan2');
+    expect(managed).toBe(true);
+    const notManaged = await manager.isManagedChannel('fake');
+    expect(notManaged).toBe(false);
   });
 
   test('shutdown flushes persistence', () => {

@@ -3,10 +3,6 @@ import { DynamicVoiceOptions, ChannelMetadata } from './types';
 import { renderChannelName, validateBitrate, validateUserLimit, sanitizeChannelName } from './utils';
 import { RateLimitQueue } from './rateLimitQueue';
 
-/**
- * Handles creation, deletion, and modification of dynamic voice channels.
- * Uses a rate-limit queue to avoid 429 errors.
- */
 export class ChannelManager {
   private queue: RateLimitQueue;
   private options: Required<Pick<DynamicVoiceOptions, 'defaultName' | 'defaultBitrate' | 'defaultUserLimit' | 'requestQueueDelayMs'>>;
@@ -21,20 +17,19 @@ export class ChannelManager {
     };
   }
 
-  /**
-   * Create a new voice channel for a user.
-   * Returns the created channel and its metadata.
-   */
   public async createChannelForUser(
     guild: Guild,
     creator: User,
     _member: GuildMember,
-    parentCategory?: CategoryChannel | null
+    parentCategory?: CategoryChannel | null,
+    customName?: string,
+    customBitrate?: number,
+    customUserLimit?: number
   ): Promise<{ channel: VoiceChannel; metadata: ChannelMetadata }> {
-    const channelName = renderChannelName(this.options.defaultName, creator);
+    const channelName = customName ?? renderChannelName(this.options.defaultName, creator);
     const sanitizedName = sanitizeChannelName(channelName);
-    const bitrate = validateBitrate(this.options.defaultBitrate);
-    const userLimit = validateUserLimit(this.options.defaultUserLimit);
+    const bitrate = validateBitrate(customBitrate ?? this.options.defaultBitrate);
+    const userLimit = validateUserLimit(customUserLimit ?? this.options.defaultUserLimit);
 
     const createdChannel = await this.queue.add(async () => {
       const created = await guild.channels.create({
@@ -45,7 +40,6 @@ export class ChannelManager {
         parent: parentCategory ?? undefined,
         reason: `Dynamic voice channel created for ${creator.tag}`
       });
-      // Discord.js v14 returns a VoiceChannel when type is GuildVoice – no assertion needed.
       return created;
     });
 
@@ -53,15 +47,13 @@ export class ChannelManager {
       channel: createdChannel,
       creatorId: creator.id,
       createdAt: new Date(),
-      lastActivityAt: new Date()
+      lastActivityAt: new Date(),
+      cohosts: []
     };
 
     return { channel: createdChannel, metadata };
   }
 
-  /**
-   * Delete a voice channel.
-   */
   public async deleteChannel(channel: VoiceChannel): Promise<void> {
     await this.queue.add(async () => {
       if (channel.deletable) {
@@ -70,9 +62,6 @@ export class ChannelManager {
     });
   }
 
-  /**
-   * Rename a channel.
-   */
   public async renameChannel(channel: VoiceChannel, newName: string): Promise<void> {
     const sanitized = sanitizeChannelName(newName);
     await this.queue.add(async () => {
@@ -80,9 +69,6 @@ export class ChannelManager {
     });
   }
 
-  /**
-   * Update last activity timestamp for a channel (used for stale detection).
-   */
   public updateActivity(metadata: ChannelMetadata): void {
     metadata.lastActivityAt = new Date();
   }

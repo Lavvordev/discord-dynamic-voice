@@ -3,6 +3,7 @@ import { DynamicVoiceOptions } from './types';
 import { ChannelManager } from './channelManager';
 import { PermissionManager } from './permissionManager';
 import { PersistenceManager } from './persistence';
+import { DynamicVoiceManager } from './manager';
 
 export class VoiceStateHandler {
   private creatorChannelId: string;
@@ -14,7 +15,8 @@ export class VoiceStateHandler {
   constructor(
     private channelManager: ChannelManager,
     private persistence: PersistenceManager,
-    options: DynamicVoiceOptions
+    options: DynamicVoiceOptions,
+    private manager: DynamicVoiceManager
   ) {
     this.creatorChannelId = options.creatorChannelId;
     this.autoDeleteWhenEmpty = options.autoDeleteWhenEmpty ?? true;
@@ -26,7 +28,6 @@ export class VoiceStateHandler {
   public async handle(oldState: VoiceState, newState: VoiceState): Promise<void> {
     const member = newState.member ?? oldState.member;
     if (!member) return;
-
     const guild = newState.guild ?? oldState.guild;
 
     if (newState.channelId === this.creatorChannelId && oldState.channelId !== this.creatorChannelId) {
@@ -35,7 +36,7 @@ export class VoiceStateHandler {
 
     if (oldState.channelId && oldState.channelId !== this.creatorChannelId) {
       const dynamicChannel = oldState.channel as VoiceChannel;
-      if (dynamicChannel && this.persistence.has(dynamicChannel.id)) {
+      if (dynamicChannel && (await this.persistence.hasChannel(dynamicChannel.id))) {
         await this.handleLeaveDynamicChannel(dynamicChannel);
       }
     }
@@ -44,27 +45,44 @@ export class VoiceStateHandler {
   private async handleJoinCreator(member: GuildMember, guild: Guild): Promise<void> {
     const now = Date.now();
     const lastCreate = this.cooldowns.get(member.id) ?? 0;
-    if (now - lastCreate < this.creationCooldownMs) return;
+    const tier = this.manager.getPremiumTierForMember(member);
+    const bypassCooldown = tier?.bypassCooldown ?? false;
+    if (!bypassCooldown && now - lastCreate < this.creationCooldownMs) return;
 
     const creatorChannel = guild.channels.cache.get(this.creatorChannelId) as VoiceChannel;
     const parentCategory = creatorChannel?.parent ?? null;
+
+    const prefs = this.persistence.getUserPreferences(member.id);
+    const channelName = prefs?.defaultName ?? (this.manager as any).options.defaultName ?? "{username}'s voice";
+    const bitrate = tier?.defaultBitrate ?? prefs?.defaultBitrate ?? (this.manager as any).options.defaultBitrate ?? 64000;
+    const userLimit = tier?.defaultUserLimit ?? prefs?.defaultUserLimit ?? (this.manager as any).options.defaultUserLimit ?? 0;
 
     const { channel, metadata } = await this.channelManager.createChannelForUser(
       guild,
       member.user,
       member,
-      parentCategory
+      parentCategory,
+      channelName,
+      bitrate,
+      userLimit
     );
 
     await PermissionManager.cloneOverrides(creatorChannel, channel, member);
 
-    this.persistence.set(channel.id, {
+    const storedData = {
       channelId: channel.id,
       creatorId: member.id,
       guildId: guild.id,
       createdAt: metadata.createdAt.getTime(),
-      lastActivityAt: metadata.lastActivityAt.getTime()
-    });
+      lastActivityAt: metadata.lastActivityAt.getTime(),
+      cohosts: [],
+      locked: prefs?.defaultLocked ?? false
+    };
+    await this.persistence.setChannel(channel.id, storedData);
+
+    if (prefs?.defaultLocked) {
+      await PermissionManager.lockChannel(channel);
+    }
 
     await member.voice.setChannel(channel, 'Moving to dynamic channel');
     this.cooldowns.set(member.id, now);
@@ -73,6 +91,7 @@ export class VoiceStateHandler {
   private async handleLeaveDynamicChannel(channel: VoiceChannel): Promise<void> {
     await this.sleep(500);
     const memberCount = channel.members.size;
+    const data = await this.persistence.getChannel(channel.id);
 
     if (memberCount === 0 && this.autoDeleteWhenEmpty) {
       if (this.emptyDeleteDelayMs > 0) {
@@ -83,24 +102,24 @@ export class VoiceStateHandler {
       } else {
         await this.deleteDynamicChannel(channel);
       }
-    } else if (memberCount > 0) {
-      const stored = this.persistence.get(channel.id);
-      if (stored) {
-        const ownerStillPresent = channel.members.some(m => m.id === stored.creatorId);
-        if (!ownerStillPresent) {
-          const newOwnerMember = channel.members.first();
-          if (newOwnerMember && newOwnerMember.id !== stored.creatorId) {
-            await PermissionManager.transferOwnership(channel, stored.creatorId, newOwnerMember);
-            stored.creatorId = newOwnerMember.id;
-            this.persistence.set(channel.id, stored);
-          }
+    } else if (memberCount > 0 && data) {
+      const ownerStillPresent = channel.members.some(m => m.id === data.creatorId);
+      if (!ownerStillPresent) {
+        const newOwnerMember = channel.members.first();
+        if (newOwnerMember && newOwnerMember.id !== data.creatorId) {
+          await PermissionManager.transferOwnership(channel, data.creatorId, newOwnerMember);
+          data.creatorId = newOwnerMember.id;
+          await this.persistence.setChannel(channel.id, data);
+          this.manager.emit('ownerSwapped', channel, newOwnerMember.user);
+        } else {
+          this.manager.openClaimWindow(channel, Array.from(channel.members.values()));
         }
       }
     }
   }
 
   private async deleteDynamicChannel(channel: VoiceChannel): Promise<void> {
-    this.persistence.delete(channel.id);
+    await this.persistence.deleteChannel(channel.id);
     await this.channelManager.deleteChannel(channel);
   }
 

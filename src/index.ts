@@ -1,42 +1,74 @@
-/**
- * discord-dynamic-voice
- * 
- * A plug-and-play manager for Discord bots that creates temporary voice channels.
- * Users join a designated "creator" channel, get a private channel they control,
- * and it auto-deletes when empty.
- * 
- * Exports:
- * - DynamicVoiceManager: main class
- * - Command handlers: handleRename, handleLimit, handleLock, handleUnlock
- * - Types and utilities
- */
+import { VoiceChannel, GuildMember, User } from 'discord.js';
 
-// Main manager
-export { DynamicVoiceManager } from './manager';
+export interface DynamicVoiceOptions {
+  creatorChannelId: string;
+  defaultName?: string;
+  defaultBitrate?: number;
+  defaultUserLimit?: number;
+  autoDeleteWhenEmpty?: boolean;
+  emptyDeleteDelayMs?: number;
+  creationCooldownMs?: number;
+  requestQueueDelayMs?: number;
+  persistenceFilePath?: string;
+  storageAdapter?: StorageAdapter;
+  enableActivityBadges?: boolean;
+  premiumTiers?: PremiumTier[];
+}
 
-// Command handlers (for slash commands integration)
-export {
-  handleRename,
-  handleLimit,
-  handleLock,
-  handleUnlock
-} from './commands';
+export interface StoredChannelData {
+  channelId: string;
+  creatorId: string;
+  guildId: string;
+  createdAt: number;
+  lastActivityAt: number;
+  cohosts?: string[];
+  locked?: boolean;
+  originalName?: string;
+}
 
-// Types for external use
-export type {
-  DynamicVoiceOptions,
-  StoredChannelData,
-  ChannelMetadata,
-  Events
-} from './types';
+export interface ChannelMetadata {
+  channel: VoiceChannel;
+  creatorId: string;
+  createdAt: Date;
+  lastActivityAt: Date;
+  cohosts?: string[];
+}
 
-// Utility functions (in case developers need them)
-export {
-  sanitizeChannelName,
-  renderChannelName,
-  validateUserLimit,
-  validateBitrate
-} from './utils';
+export interface UserPreferences {
+  defaultName?: string;
+  defaultUserLimit?: number;
+  defaultLocked?: boolean;
+  defaultBitrate?: number;
+}
 
-// Persistence manager (advanced usage)
-export { PersistenceManager } from './persistence';
+export interface PremiumTier {
+  roleId: string;
+  defaultBitrate?: number;
+  defaultUserLimit?: number;
+  bypassCooldown?: boolean;
+  nameTemplate?: string;
+}
+
+export interface KnockRequest {
+  channelId: string;
+  userId: string;
+  userName: string;
+  timestamp: number;
+}
+
+export interface StorageAdapter {
+  get(key: string): Promise<any>;
+  set(key: string, value: any): Promise<void>;
+  delete(key: string): Promise<void>;
+  getAll(prefix?: string): Promise<Map<string, any>>;
+}
+
+export interface Events {
+  channelCreated: (channel: VoiceChannel, creator: User) => void;
+  channelEmpty: (channel: VoiceChannel) => void;
+  ownerSwapped: (channel: VoiceChannel, newOwner: User) => void;
+  error: (error: Error) => void;
+  knockRequest: (channel: VoiceChannel, knocker: User, owner: User) => void;
+  claimWindowOpened: (channel: VoiceChannel, remainingMembers: GuildMember[]) => void;
+  channelClaimed: (channel: VoiceChannel, newOwner: User) => void;
+}

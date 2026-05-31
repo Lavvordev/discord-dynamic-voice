@@ -1,4 +1,4 @@
-import { VoiceChannel } from 'discord.js';
+import { VoiceChannel, GuildMember, User } from 'discord.js';
 
 export interface DynamicVoiceOptions {
   creatorChannelId: string;
@@ -10,6 +10,9 @@ export interface DynamicVoiceOptions {
   creationCooldownMs?: number;
   requestQueueDelayMs?: number;
   persistenceFilePath?: string;
+  storageAdapter?: StorageAdapter;
+  enableActivityBadges?: boolean;
+  premiumTiers?: PremiumTier[];
 }
 
 export interface StoredChannelData {
@@ -18,6 +21,9 @@ export interface StoredChannelData {
   guildId: string;
   createdAt: number;
   lastActivityAt: number;
+  cohosts?: string[];
+  locked?: boolean;
+  originalName?: string;
 }
 
 export interface ChannelMetadata {
@@ -25,11 +31,44 @@ export interface ChannelMetadata {
   creatorId: string;
   createdAt: Date;
   lastActivityAt: Date;
+  cohosts?: string[];
+}
+
+export interface UserPreferences {
+  defaultName?: string;
+  defaultUserLimit?: number;
+  defaultLocked?: boolean;
+  defaultBitrate?: number;
+}
+
+export interface PremiumTier {
+  roleId: string;
+  defaultBitrate?: number;
+  defaultUserLimit?: number;
+  bypassCooldown?: boolean;
+  nameTemplate?: string;
+}
+
+export interface KnockRequest {
+  channelId: string;
+  userId: string;
+  userName: string;
+  timestamp: number;
+}
+
+export interface StorageAdapter {
+  get(key: string): Promise<any>;
+  set(key: string, value: any): Promise<void>;
+  delete(key: string): Promise<void>;
+  getAll(prefix?: string): Promise<Map<string, any>>;
 }
 
 export interface Events {
-  channelCreated: (channel: VoiceChannel, creator: { tag: string; id: string }) => void;
+  channelCreated: (channel: VoiceChannel, creator: User) => void;
   channelEmpty: (channel: VoiceChannel) => void;
-  ownerSwapped: (channel: VoiceChannel, newOwner: { tag: string; id: string }) => void;
+  ownerSwapped: (channel: VoiceChannel, newOwner: User) => void;
   error: (error: Error) => void;
+  knockRequest: (channel: VoiceChannel, knocker: User, owner: User) => void;
+  claimWindowOpened: (channel: VoiceChannel, remainingMembers: GuildMember[]) => void;
+  channelClaimed: (channel: VoiceChannel, newOwner: User) => void;
 }

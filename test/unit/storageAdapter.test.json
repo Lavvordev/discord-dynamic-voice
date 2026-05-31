@@ -1,0 +1,46 @@
+import { JSONFileAdapter } from '../../src/storageAdapter';
+import fs from 'fs';
+import path from 'path';
+
+const TEST_FILE = path.join(__dirname, 'test-adapter.json');
+
+describe('JSONFileAdapter', () => {
+  let adapter: JSONFileAdapter;
+
+  beforeEach(() => {
+    if (fs.existsSync(TEST_FILE)) fs.unlinkSync(TEST_FILE);
+    adapter = new JSONFileAdapter(TEST_FILE);
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(TEST_FILE)) fs.unlinkSync(TEST_FILE);
+  });
+
+  test('set and get works', async () => {
+    await adapter.set('foo', { bar: 123 });
+    const val = await adapter.get('foo');
+    expect(val).toEqual({ bar: 123 });
+  });
+
+  test('get returns null for missing key', async () => {
+    const val = await adapter.get('nonexistent');
+    expect(val).toBeNull();
+  });
+
+  test('delete removes key', async () => {
+    await adapter.set('foo', 'value');
+    await adapter.delete('foo');
+    const val = await adapter.get('foo');
+    expect(val).toBeNull();
+  });
+
+  test('getAll returns all keys with prefix', async () => {
+    await adapter.set('channels:1', { id: 1 });
+    await adapter.set('channels:2', { id: 2 });
+    await adapter.set('user:1', { name: 'test' });
+    const all = await adapter.getAll('channels:');
+    expect(all.size).toBe(2);
+    expect(all.has('channels:1')).toBe(true);
+    expect(all.has('channels:2')).toBe(true);
+  });
+});

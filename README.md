@@ -22,6 +22,14 @@ Most Discord bot developers rewrite complex voice-state logic for every single p
 - Rate-limit safe - request queue prevents Discord 429 errors
 - Zero external APIs - operates entirely via Discord's WebSocket gateway
 - TypeScript support - full type definitions included
+- Ghost mode (hide/unhide) - channel disappears from sidebar for non-members
+- User whitelist/blacklist - granular access control per user
+- Knock gateway - users can request entry to locked channels
+- Co-host delegation - grant moderation permissions to trusted users
+- Claim window - 60-second ownership claim after owner leaves
+- User preference memory - remembers channel names and limits per user
+- Premium tier support - role-based bitrate, cooldown bypass, custom name templates
+- Custom storage adapter - plug in MongoDB, PostgreSQL, or Redis
 
 ## Installation
 
@@ -48,47 +56,40 @@ const client = new Client({
   ] 
 });
 
-// Initialize the voice manager
 const voiceManager = new DynamicVoiceManager(client, {
-  creatorChannelId: '123456789012345678', // Replace with your "Join to Create" VC ID
+  creatorChannelId: '123456789012345678',
   defaultName: "{username}'s space",
-  defaultBitrate: 64000,
   autoDeleteWhenEmpty: true
 });
 
-// Event hooks
 voiceManager.on('channelCreated', (channel, creator) => {
   console.log(`Created dynamic channel for ${creator.tag}`);
 });
 
-voiceManager.on('channelEmpty', (channel) => {
-  console.log(`Channel ${channel.name} is empty - will be deleted`);
-});
-
-voiceManager.on('error', (error) => {
-  console.error('Dynamic voice error:', error);
-});
-
 client.on('ready', async () => {
   await voiceManager.init();
-  console.log(`Bot logged in as ${client.user.tag}`);
+  console.log(`Bot ready`);
 });
 
-client.login('YOUR_BOT_TOKEN');
+client.login('YOUR_TOKEN');
 ```
 
 ## Slash Commands Integration
 
-Register slash commands (rename, limit, lock, unlock) using your command handler. Example for `/rename`:
+Register slash commands (rename, limit, lock, unlock, hide, permit, block, knock, cohost, claim) using your command handler.
 
 ```javascript
-const { handleRename } = require('discord-dynamic-voice');
+const { 
+  handleRename, handleLimit, handleLock, handleUnlock,
+  handleHide, handleUnhide, handlePermit, handleBlock,
+  handleKnock, handleAddCohost, handleRemoveCohost, handleClaim
+} = require('discord-dynamic-voice');
 
 // Inside your interaction handler
 if (commandName === 'rename') {
   const channel = interaction.member.voice.channel;
   if (!channel || !voiceManager.isManagedChannel(channel.id)) {
-    return interaction.reply({ content: 'You are not in a dynamic voice channel.', ephemeral: true });
+    return interaction.reply({ content: 'Not in a dynamic channel.', ephemeral: true });
   }
   await handleRename(voiceManager, interaction, channel, interaction.member);
 }
@@ -100,15 +101,17 @@ if (commandName === 'rename') {
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `creatorChannelId` | string | required | ID of the lobby channel users join to spawn a VC |
-| `defaultName` | string | `"{username}'s voice"` | Name template (supports `{username}`, `{displayname}`, `{id}`) |
+| `creatorChannelId` | string | required | ID of the lobby channel |
+| `defaultName` | string | `"{username}'s voice"` | Name template |
 | `defaultBitrate` | number | `64000` | Bitrate in kbps |
 | `defaultUserLimit` | number | `0` | Max users (0 = unlimited) |
-| `autoDeleteWhenEmpty` | boolean | `true` | Delete channel when everyone leaves |
-| `emptyDeleteDelayMs` | number | `0` | Delay before deleting empty channel |
+| `autoDeleteWhenEmpty` | boolean | `true` | Delete when empty |
+| `emptyDeleteDelayMs` | number | `0` | Delay before deletion |
 | `creationCooldownMs` | number | `5000` | Cooldown per user (ms) |
-| `requestQueueDelayMs` | number | `1000` | Delay between Discord API requests |
-| `persistenceFilePath` | string | `'./dynamic-voice-state.json'` | Path to JSON state file |
+| `requestQueueDelayMs` | number | `1000` | Delay between API requests |
+| `persistenceFilePath` | string | `'./dynamic-voice-state.json'` | JSON file path |
+| `storageAdapter` | `StorageAdapter` | `null` | Custom database adapter |
+| `premiumTiers` | `PremiumTier[]` | `[]` | Role-based premium config |
 
 ### Methods
 
@@ -117,6 +120,17 @@ if (commandName === 'rename') {
 | `init()` | Loads persistence, cleans orphans, attaches listeners |
 | `lockChannel(channel)` | Prevents @everyone from connecting |
 | `unlockChannel(channel)` | Restores @everyone connection |
+| `hideChannel(channel)` | Removes ViewChannel permission for @everyone |
+| `unhideChannel(channel)` | Restores ViewChannel permission |
+| `permitUser(channel, userId)` | Allows a specific user to join |
+| `blockUser(channel, userId)` | Blocks a user and disconnects them |
+| `knockChannel(channel, knocker, owner)` | Sends a knock request to owner |
+| `addCohost(channel, userId)` | Adds a co-host with moderation powers |
+| `removeCohost(channel, userId)` | Removes a co-host |
+| `claimChannel(channel, member)` | Attempts to claim ownership (60s window) |
+| `setUserPreferences(userId, prefs)` | Saves user preferences |
+| `getUserPreferences(userId)` | Returns saved preferences |
+| `getPremiumTierForMember(member)` | Returns matching premium tier |
 | `setUserLimit(channel, limit)` | Sets max user capacity (0-99) |
 | `renameChannel(channel, name)` | Renames the channel |
 | `getOwner(channelId)` | Returns owner's user ID or null |
@@ -127,10 +141,20 @@ if (commandName === 'rename') {
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `channelCreated` | `(channel, creator)` | Fired when a new dynamic channel is created |
-| `channelEmpty` | `(channel)` | Fired when a channel becomes empty (before deletion) |
-| `ownerSwapped` | `(channel, newOwner)` | Fired when ownership transfers to another member |
-| `error` | `(error)` | Fired on any internal error |
+| `channelCreated` | `(channel, creator)` | New dynamic channel created |
+| `channelEmpty` | `(channel)` | Channel becomes empty (before deletion) |
+| `ownerSwapped` | `(channel, newOwner)` | Ownership transferred |
+| `error` | `(error)` | Internal error |
+| `knockRequest` | `(channel, knocker, owner)` | Knock received (handle with buttons) |
+| `claimWindowOpened` | `(channel, remainingMembers)` | Owner left, claim window starts |
+| `channelClaimed` | `(channel, newOwner)` | Channel claimed via /claim |
+
+## Examples
+
+See the `examples/` folder for:
+- `basic-usage.js` – minimal setup
+- `premium-example.js` – role-based premium tiers
+- `storage-adapter.js` – MongoDB adapter example
 
 ## Contributing
 

@@ -1,35 +1,39 @@
 import { VoiceChannel, ChatInputCommandInteraction, GuildMember } from 'discord.js';
 import { DynamicVoiceManager } from '../manager';
 
-export async function handleLock(
+export async function handleKnock(
   manager: DynamicVoiceManager,
   interaction: ChatInputCommandInteraction,
   channel: VoiceChannel,
   member: GuildMember
 ): Promise<void> {
   const ownerId = await manager.getOwner(channel.id);
-  const isOwner = ownerId === member.id;
-  const cohosts = await manager.getCohosts(channel.id);
-  const isCohost = cohosts.includes(member.id);
-  const hasAdmin = member.permissions.has('ManageChannels');
-
-  if (!isOwner && !isCohost && !hasAdmin) {
+  if (!ownerId) {
     await interaction.reply({
-      content: 'You are not the owner or co-host of this voice channel.',
+      content: 'This channel has no owner.',
+      ephemeral: true
+    });
+    return;
+  }
+
+  const owner = interaction.guild?.members.cache.get(ownerId);
+  if (!owner) {
+    await interaction.reply({
+      content: 'Channel owner not found.',
       ephemeral: true
     });
     return;
   }
 
   try {
-    await manager.lockChannel(channel);
+    await manager.knockChannel(channel, member, owner.user);
     await interaction.reply({
-      content: 'Channel locked. Others cannot join.',
+      content: `Knock request sent to ${owner.displayName}. They will be notified.`,
       ephemeral: true
     });
   } catch (err) {
     await interaction.reply({
-      content: `Failed to lock channel: ${(err as Error).message}`,
+      content: `Failed to send knock: ${(err as Error).message}`,
       ephemeral: true
     });
   }
