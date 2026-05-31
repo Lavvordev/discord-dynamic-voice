@@ -53,9 +53,13 @@ export class VoiceStateHandler {
     const parentCategory = creatorChannel?.parent ?? null;
 
     const prefs = this.persistence.getUserPreferences(member.id);
-    const channelName = prefs?.defaultName ?? (this.manager as any).options.defaultName ?? "{username}'s voice";
-    const bitrate = tier?.defaultBitrate ?? prefs?.defaultBitrate ?? (this.manager as any).options.defaultBitrate ?? 64000;
-    const userLimit = tier?.defaultUserLimit ?? prefs?.defaultUserLimit ?? (this.manager as any).options.defaultUserLimit ?? 0;
+    const defaultName = (this.manager as any).options.defaultName ?? "{username}'s voice";
+    const defaultBitrate = (this.manager as any).options.defaultBitrate ?? 64000;
+    const defaultUserLimit = (this.manager as any).options.defaultUserLimit ?? 0;
+
+    const channelName = prefs?.defaultName ?? defaultName;
+    const bitrate = tier?.defaultBitrate ?? prefs?.defaultBitrate ?? defaultBitrate;
+    const userLimit = tier?.defaultUserLimit ?? prefs?.defaultUserLimit ?? defaultUserLimit;
 
     const { channel, metadata } = await this.channelManager.createChannelForUser(
       guild,

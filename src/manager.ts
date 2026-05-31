@@ -1,6 +1,6 @@
 import { Client, VoiceChannel, GuildMember, User } from 'discord.js';
 import EventEmitter from 'events';
-import { DynamicVoiceOptions, UserPreferences, PremiumTier, KnockRequest, StoredChannelData } from './types';
+import { DynamicVoiceOptions, UserPreferences, PremiumTier, KnockRequest } from './types';
 import { ChannelManager } from './channelManager';
 import { VoiceStateHandler } from './voiceStateHandler';
 import { PersistenceManager } from './persistence';
@@ -34,12 +34,12 @@ export class DynamicVoiceManager extends EventEmitter {
     this.initialized = true;
     await this.cleanupOrphanedChannels();
     this.client.on('voiceStateUpdate', (oldState, newState) => {
-      this.voiceHandler.handle(oldState, newState).catch(err => this.emit('error', err));
+      void this.voiceHandler.handle(oldState, newState).catch(err => this.emit('error', err));
     });
     this.client.on('channelDelete', (channel) => {
       if (channel.isVoiceBased()) {
-        this.persistence.hasChannel(channel.id).then(has => {
-          if (has) this.persistence.deleteChannel(channel.id);
+        void this.persistence.hasChannel(channel.id).then(has => {
+          if (has) void this.persistence.deleteChannel(channel.id);
         });
       }
     });
@@ -63,7 +63,6 @@ export class DynamicVoiceManager extends EventEmitter {
     }
   }
 
-  // Permission isolation methods
   public async hideChannel(channel: VoiceChannel): Promise<void> {
     await PermissionManager.hideChannel(channel);
   }
@@ -91,7 +90,6 @@ export class DynamicVoiceManager extends EventEmitter {
     this.emit('knockRequest', channel, knocker.user, owner);
   }
 
-  // Cohost methods
   public async addCohost(channel: VoiceChannel, userId: string): Promise<void> {
     const data = await this.persistence.getChannel(channel.id);
     if (!data) throw new Error('Channel not managed');
@@ -120,7 +118,6 @@ export class DynamicVoiceManager extends EventEmitter {
     return data?.cohosts ?? [];
   }
 
-  // Claim window methods
   public async claimChannel(channel: VoiceChannel, newOwner: GuildMember): Promise<boolean> {
     const data = await this.persistence.getChannel(channel.id);
     if (!data) return false;
@@ -150,7 +147,6 @@ export class DynamicVoiceManager extends EventEmitter {
     this.claimWindows.set(windowId, timeout);
   }
 
-  // User preferences
   public async setUserPreferences(userId: string, prefs: UserPreferences): Promise<void> {
     await this.persistence.setUserPreferences(userId, prefs);
   }
@@ -159,7 +155,6 @@ export class DynamicVoiceManager extends EventEmitter {
     return this.persistence.getUserPreferences(userId);
   }
 
-  // Premium tier helper
   public getPremiumTierForMember(member: GuildMember): PremiumTier | null {
     const tiers = this.options.premiumTiers ?? [];
     for (const tier of tiers) {
@@ -170,7 +165,6 @@ export class DynamicVoiceManager extends EventEmitter {
     return null;
   }
 
-  // Existing public methods
   public async lockChannel(channel: VoiceChannel): Promise<void> {
     await PermissionManager.lockChannel(channel);
   }

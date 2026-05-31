@@ -57,10 +57,10 @@ export interface KnockRequest {
 }
 
 export interface StorageAdapter {
-  get(key: string): Promise<any>;
-  set(key: string, value: any): Promise<void>;
+  get(key: string): Promise<unknown>;
+  set(key: string, value: unknown): Promise<void>;
   delete(key: string): Promise<void>;
-  getAll(prefix?: string): Promise<Map<string, any>>;
+  getAll(prefix?: string): Promise<Map<string, unknown>>;
 }
 
 export interface Events {

@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 import { StorageAdapter, StoredChannelData, UserPreferences } from './types';
 import { JSONFileAdapter } from './storageAdapter';
 
@@ -22,7 +21,7 @@ export class PersistenceManager {
       if (!fs.existsSync(this.filePath)) return;
       const raw = fs.readFileSync(this.filePath, 'utf-8');
       const data = JSON.parse(raw);
-      if (data.channels && Array.isArray(data.channels)) {
+      if (Array.isArray(data.channels)) {
         for (const entry of data.channels) {
           this.dataCache.set(entry.channelId, entry);
         }

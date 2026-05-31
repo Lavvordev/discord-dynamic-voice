@@ -2,12 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import { StorageAdapter } from './types';
 
-/**
- * Default JSON file adapter for persistence.
- * Used when no custom adapter is provided.
- * 
- * I've seen this fail when the directory doesn't exist – we create it recursively.
- */
 export class JSONFileAdapter implements StorageAdapter {
   private filePath: string;
 
@@ -22,33 +16,31 @@ export class JSONFileAdapter implements StorageAdapter {
     }
   }
 
-  async get(key: string): Promise<any> {
+  async get(key: string): Promise<unknown> {
     this.ensureDir();
     try {
-      if (!fs.existsSync(this.filePath)) {
-        return null;
-      }
+      if (!fs.existsSync(this.filePath)) return null;
       const raw = fs.readFileSync(this.filePath, 'utf-8');
-      const data = JSON.parse(raw);
+      const data = JSON.parse(raw) as Record<string, unknown>;
       return data[key] ?? null;
     } catch (err) {
-      console.error(`[StorageAdapter] Failed to read key ${key}:`, err);
+      console.error(`[JSONFileAdapter] Failed to read key ${key}:`, err);
       return null;
     }
   }
 
-  async set(key: string, value: any): Promise<void> {
+  async set(key: string, value: unknown): Promise<void> {
     this.ensureDir();
     try {
-      let data: Record<string, any> = {};
+      let data: Record<string, unknown> = {};
       if (fs.existsSync(this.filePath)) {
         const raw = fs.readFileSync(this.filePath, 'utf-8');
-        data = JSON.parse(raw);
+        data = JSON.parse(raw) as Record<string, unknown>;
       }
       data[key] = value;
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2));
     } catch (err) {
-      console.error(`[StorageAdapter] Failed to write key ${key}:`, err);
+      console.error(`[JSONFileAdapter] Failed to write key ${key}:`, err);
     }
   }
 
@@ -56,27 +48,27 @@ export class JSONFileAdapter implements StorageAdapter {
     try {
       if (!fs.existsSync(this.filePath)) return;
       const raw = fs.readFileSync(this.filePath, 'utf-8');
-      const data = JSON.parse(raw);
+      const data = JSON.parse(raw) as Record<string, unknown>;
       delete data[key];
       fs.writeFileSync(this.filePath, JSON.stringify(data, null, 2));
     } catch (err) {
-      console.error(`[StorageAdapter] Failed to delete key ${key}:`, err);
+      console.error(`[JSONFileAdapter] Failed to delete key ${key}:`, err);
     }
   }
 
-  async getAll(prefix?: string): Promise<Map<string, any>> {
-    const result = new Map<string, any>();
+  async getAll(prefix?: string): Promise<Map<string, unknown>> {
+    const result = new Map<string, unknown>();
     try {
       if (!fs.existsSync(this.filePath)) return result;
       const raw = fs.readFileSync(this.filePath, 'utf-8');
-      const data = JSON.parse(raw);
+      const data = JSON.parse(raw) as Record<string, unknown>;
       for (const [key, value] of Object.entries(data)) {
         if (!prefix || key.startsWith(prefix)) {
           result.set(key, value);
         }
       }
     } catch (err) {
-      console.error('[StorageAdapter] Failed to getAll:', err);
+      console.error('[JSONFileAdapter] Failed to getAll:', err);
     }
     return result;
   }
